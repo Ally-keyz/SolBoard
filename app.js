@@ -41,7 +41,7 @@ app.post("/api/upload", upload.single("video"), async (req, res) => {
   const video = await VideoModel.create({
     title: req.file.originalname,
     filename: req.file.filename,
-    url: `http://YOUR_SERVER_IP:3000/videos/${req.file.filename}`
+    url: `${req.protocol}://${req.get("host")}/videos/${req.file.filename}`
   });
 
   res.json(video);

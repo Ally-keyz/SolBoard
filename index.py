@@ -1,9 +1,13 @@
+import socketio
 import vlc
 import time
-import json
-from websocket import WebSocketApp
 
-instance = vlc.Instance("--fullscreen")
+sio = socketio.Client()
+
+instance = vlc.Instance(
+    "--fullscreen",
+    "--avcodec-hw=mmal"
+)
 player = instance.media_player_new()
 
 def play_video(url):
@@ -14,28 +18,22 @@ def play_video(url):
     time.sleep(1)
     player.set_fullscreen(True)
 
-def pause():
-    player.pause()
+@sio.event
+def connect():
+    print("🟢 Connected to server")
 
-def stop():
-    player.stop()
+@sio.on("cast-video")
+def on_cast(data):
+    play_video(data["url"])
 
-def on_message(ws, message):
-    data = json.loads(message)
-
-    if data.get("url"):
-        play_video(data["url"])
-
-    if data.get("action") == "pause":
-        pause()
-    elif data.get("action") == "play":
+@sio.on("control")
+def on_control(data):
+    if data["action"] == "pause":
+        player.pause()
+    elif data["action"] == "play":
         player.play()
-    elif data.get("action") == "stop":
-        stop()
+    elif data["action"] == "stop":
+        player.stop()
 
-ws = WebSocketApp(
-    "ws://YOUR_SERVER_IP:3000/socket.io/?EIO=4&transport=websocket",
-    on_message=on_message
-)
-
-ws.run_forever()
+sio.connect("https://solboard-1.onrender.com")
+sio.wait()
