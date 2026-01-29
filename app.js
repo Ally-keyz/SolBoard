@@ -39,14 +39,19 @@ const upload = multer({ storage });
 
 /* 📤 Upload video */
 app.post("/api/upload", upload.single("video"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No video file uploaded" });
+  }
+
   const video = await VideoModel.create({
     title: req.file.originalname,
     filename: req.file.filename,
-    url: `https://solboard-1.onrender.com/videos/${req.file.filename}`
+    url: `${req.protocol}://${req.get("host")}/videos/${req.file.filename}`
   });
 
   res.json(video);
 });
+
 
 
 /* 📃 Get videos */
@@ -68,33 +73,41 @@ app.post("/api/cast/:id", async (req, res) => {
   res.json({ success: true });
 });
 
+
 /* 🗑️ Delete video */
 app.delete("/api/videos/:id", async (req, res) => {
   try {
     const video = await VideoModel.findById(req.params.id);
-    if (!video) {
-      return res.status(404).json({ error: "Video not found" });
+    if (!video) return res.status(404).json({ error: "Video not found" });
+
+    // 🔁 Get filename safely
+    const filename =
+      video.filename ||
+      (video.url ? path.basename(video.url) : null);
+
+    if (filename) {
+      const filePath = path.join(__dirname, "uploads", filename);
+
+      fs.unlink(filePath, (err) => {
+        if (err && err.code !== "ENOENT") {
+          console.error("❌ Failed to delete file:", err);
+        }
+      });
+    } else {
+      console.warn("⚠️ No filename or URL found for this video");
     }
 
-    const filePath = path.join(__dirname, "uploads", video.filename);
-
-    // Delete file asynchronously
-    fs.unlink(filePath, (err) => {
-      if (err && err.code !== "ENOENT") {
-        console.error("Failed to delete file:", err);
-      }
-    });
-
     await video.deleteOne();
-
     io.emit("video-deleted", { id: video._id });
 
-    res.json({ success: true, message: "Video deleted successfully", id: video._id });
+    res.json({ success: true });
   } catch (err) {
     console.error("❌ Delete error:", err);
-    res.status(500).json({ error: "Failed to delete video" });
+    res.status(500).json({ error: "Delete failed" });
   }
 });
+
+
 
 
 
