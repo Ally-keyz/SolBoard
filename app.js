@@ -7,6 +7,7 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import VideoModel from "./models/videoSchema.js";
+import fs from 'fs';
 /*  ESM dirname fix */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -66,6 +67,34 @@ app.post("/api/cast/:id", async (req, res) => {
 
   res.json({ success: true });
 });
+
+/* 🗑️ Delete video */
+app.delete("/api/videos/:id", async (req, res) => {
+  try {
+    const video = await VideoModel.findById(req.params.id);
+    if (!video) {
+      return res.status(404).json({ error: "Video not found" });
+    }
+
+    // 📁 Delete file from uploads folder
+    const filePath = path.join(__dirname, "uploads", video.filename);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+
+    // 🗑️ Delete from MongoDB
+    await video.deleteOne();
+
+    // 📢 Notify connected clients (optional but useful)
+    io.emit("video-deleted", { id: video._id });
+
+    res.json({ success: true, message: "Video deleted successfully" });
+  } catch (err) {
+    console.error("❌ Delete error:", err);
+    res.status(500).json({ error: "Failed to delete video" });
+  }
+});
+
 
 /* 🎮 Playback controls */
 io.on("connection", socket => {
