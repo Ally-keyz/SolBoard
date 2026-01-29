@@ -47,6 +47,7 @@ app.post("/api/upload", upload.single("video"), async (req, res) => {
   res.json(video);
 });
 
+
 /* 📃 Get videos */
 app.get("/api/videos", async (_, res) => {
   const videos = await VideoModel.find().sort({ createdAt: -1 });
