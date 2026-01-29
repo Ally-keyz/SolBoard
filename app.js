@@ -76,24 +76,27 @@ app.delete("/api/videos/:id", async (req, res) => {
       return res.status(404).json({ error: "Video not found" });
     }
 
-    // 📁 Delete file from uploads folder
     const filePath = path.join(__dirname, "uploads", video.filename);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
 
-    // 🗑️ Delete from MongoDB
+    // Delete file asynchronously
+    fs.unlink(filePath, (err) => {
+      if (err && err.code !== "ENOENT") {
+        console.error("Failed to delete file:", err);
+      }
+    });
+
     await video.deleteOne();
 
-    // 📢 Notify connected clients (optional but useful)
     io.emit("video-deleted", { id: video._id });
 
-    res.json({ success: true, message: "Video deleted successfully" });
+    res.json({ success: true, message: "Video deleted successfully", id: video._id });
   } catch (err) {
     console.error("❌ Delete error:", err);
     res.status(500).json({ error: "Failed to delete video" });
   }
 });
+
+
 
 
 /* 🎮 Playback controls */
