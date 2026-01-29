@@ -41,7 +41,7 @@ app.post("/api/upload", upload.single("video"), async (req, res) => {
   const video = await VideoModel.create({
     title: req.file.originalname,
     filename: req.file.filename,
-    url: `${req.protocol}://${req.get("host")}/videos/${req.file.filename}`
+    url: `https://solboard-1.onrender.com/videos/${req.file.filename}`
   });
 
   res.json(video);
