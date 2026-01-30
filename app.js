@@ -19,7 +19,9 @@ const io = new Server(server, {
   cors: { origin: "*" }
 });
 
-app.use(cors());
+app.use(cors({
+  origin:"*"
+}));
 app.use(express.json());
 app.use("/videos", express.static(path.join(__dirname, "uploads")));
 
